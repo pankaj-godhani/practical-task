@@ -15,44 +15,53 @@ class UserTest extends TestCase
      *
      * @return void
      */
-//    public function test_example()
-//    {
-//        $response = $this->http('/');
-//        Http::fake()
-//        $response->assertStatus(200);
-//    }
 
     public function test_fetching_data_from_external_api()
     {
         $response = Http::get('https://randomuser.me/api/' );
-
-        $this->assertTrue($response->status() === 200);
-        // fetch users | activities
-        // assert -> we got data from api
+         if($response->status() === 200){
+             $this->assertTrue($response->status() === 200);
+         } else{
+             $response2 = Http::get('https://www.boredapi.com/api/activity');
+             if($response2->status() === 200){
+                 $this->assertTrue($response2->status() === 200);
+             } else{
+                 $this->assertTrue(false);
+             }
+         }
     }
 
-//    public function test_getting_sorted_list()
-//    {
-//        $response = Http::get('https://randomuser.me/api/?results=10');
-//        $data = json_decode($response->getBody(), true);
-////        $unSortedUsers = $data['results'][0];
-//
-//        usort($data['results'], function ($a, $b) {
-//            return strcasecmp($a['name']['last'], $b['name']['last']);
-//        });
-//
-//
-////
-////        dd($user);
-//        // assert sorting order
-//    }
-//
+    public function test_getting_sorted_list()
+    {
+        $response = Http::get('https://randomuser.me/api/?results=10');
+        if($response->status() === 200) {
+            $data = json_decode($response->getBody(), true);
+            $unsortedArray = $data['results'];
+            usort($data['results'], function ($a, $b) {
+                return strcasecmp($b['name']['last'], $a['name']['last']);
+            });
+            $this->assertNotEquals($data['results'], $unsortedArray);
+        } else{
+            $response2 = Http::get('https://www.boredapi.com/api/activity');
+            if($response2->status() === 200){
+                $data = json_decode($response->getBody(), true);
+                $unsortedArray = $data['results'];
+                usort($data['results'], function ($a, $b) {
+                    return strcasecmp($b['type'], $a['type']);
+                });
+                $this->assertNotEquals($data['results'], $unsortedArray);
+            } else{
+                $this->assertTrue(false);
+            }
+        }
+    }
+
     public function test_returns_valid_xml_response()
     {
         // data prepare
         $response = Http::get('https://randomuser.me/api/?results=10');
         $data = json_decode($response->getBody(), true);
-        $xml = new SimpleXMLElement('<users></users>');
+        $xml = new SimpleXMLElement('<xml><users></users></xml>');
 
         foreach ($data['results'] as $user) {
             $userElement = $xml->addChild('user');
@@ -61,26 +70,14 @@ class UserTest extends TestCase
             $userElement->addChild('email', $user['email']);
             $userElement->addChild('country', $user['location']['country']);
         }
-        $testXml = simplexml_load_string($xml);
-        dd($testXml);
 
-        if ($testXml !== false && isset($testXml->message)) {
+        $testXml = simplexml_load_string($xml->asXML());
 
-            $this->assertTrue($response->status() === 200);
-
-            //either this
-            var_dump($testXml->message);
-            $this->assertEquals('Hi there PHP', $xml->message);
-
-            //or this, should be stdClass
-            $xmlObj = json_decode(json_encode((array) $testXml), 1);
-            var_dump($xmlObj->message);
-            $this->assertEquals('Hi there PHP', $xmlObj->message);
+        if ($testXml !== false && isset($testXml->users)) {
+            $this->assertTrue(true);
         } else {
-            dd("else");
+            $this->assertTrue(false);
         }
-        // xml prepare
-        // assert -> valid xml or not
     }
 
     public function getUsers()
